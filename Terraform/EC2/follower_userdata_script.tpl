@@ -64,7 +64,7 @@ if [ \$3 = \"MASTER\" ]; then
     echo \"Elastic IP disassociated from previous instance and associated with current instance.\"
 
     echo \"Updating the RouteTable\"
-    routetableid=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='${routetablename}']].{RouteTableId:RouteTableId}" --output text --region \$region)
+    routetableid=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='${routetablename}']].{RouteTableId:RouteTableId}" --output text --region $region)
     aws ec2 replace-route --route-table-id \$routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
 
     echo \"Restarting ipsec service\" 
