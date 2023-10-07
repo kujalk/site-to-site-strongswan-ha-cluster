@@ -75,22 +75,3 @@ resource "aws_route_table_association" "site-public-route2" {
   subnet_id      = aws_subnet.site-public2.id
   route_table_id = aws_route_table.site.id
 }
-
-resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.site.id
-
-  route {
-    cidr_block           = "0.0.0.0/0"
-    network_interface_id = aws_instance.EC-Public1.primary_network_interface_id
-  }
-
-  tags = {
-    Name = "${var.site_name}_Private_RouteTable"
-  }
-}
-
-#Associate the Route table with Subnet
-resource "aws_route_table_association" "site-private-route1" {
-  subnet_id      = aws_subnet.site-private.id
-  route_table_id = aws_route_table.private.id
-}

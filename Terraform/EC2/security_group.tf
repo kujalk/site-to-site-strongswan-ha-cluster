@@ -2,7 +2,7 @@
 resource "aws_security_group" "public" {
   name        = "${var.site_name}_EC2_Public_SecurityGroup"
   description = "${var.site_name} : To allow HTTP and SSH Traffic"
-  vpc_id      = aws_vpc.site.id
+  vpc_id      = var.VPC_Id
 
 
   tags = {
@@ -30,7 +30,7 @@ resource "aws_security_group" "public" {
 resource "aws_security_group" "private" {
   name        = "${var.site_name}_EC2_Private_SecurityGroup"
   description = "${var.site_name} : To allow Ping requests"
-  vpc_id      = aws_vpc.site.id
+  vpc_id      = var.VPC_Id
 
 
   tags = {
