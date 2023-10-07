@@ -28,7 +28,8 @@ conn siteA-to-siteB
   rightsubnet=${secondarycidr}
   ike=aes256-sha2_256-modp1024!
   esp=aes256-sha2_256!
-  keyingtries=0
+  keyingtries=%forever
+  closeaction=restart
   ikelifetime=1h
   lifetime=8h
   dpddelay=30
@@ -50,12 +51,7 @@ echo "IP forwarding has been enabled and will persist across reboots."
 echo "
 #!/bin/bash
 
-if [ \$# -ne 1 ]; then
-  echo \"Usage: $0 <master|slave>\"
-  exit 1
-fi
-
-if [ \$1 = \"master\" ]; then
+if [ \$3 = \"MASTER\" ]; then
 
   region=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
 
@@ -68,7 +64,7 @@ if [ \$1 = \"master\" ]; then
     echo \"Elastic IP disassociated from previous instance and associated with current instance.\"
 
     echo \"Updating the RouteTable\"
-    routetableid =$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='${routetablename}']].{RouteTableId:RouteTableId}" --output text --region \$region)
+    routetableid=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='${routetablename}']].{RouteTableId:RouteTableId}" --output text --region \$region)
     aws ec2 replace-route --route-table-id \$routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
 
     echo \"Restarting ipsec service\" 
@@ -79,7 +75,7 @@ if [ \$1 = \"master\" ]; then
     echo \"Current instance ID failed to obtain\"
   fi
 
-elif [ \$1 = \"slave\" ]; then
+elif [ \$3 = \"BACKUP\" ]; then
   # Stop IPsec service
   sudo ipsec stop
   echo \"IPsec service stopped.\"
@@ -119,8 +115,7 @@ vrrp_instance VI_1
         check_strongswan
     }
 
-    notify_master /etc/keepalived/failover.sh master
-    notify_backup  /etc/keepalived/failover.sh slave
+    notify \"/etc/keepalived/failover.sh\"
 }
 " > /etc/keepalived/keepalived.conf
 
