@@ -58,15 +58,23 @@ if [ \$3 = \"MASTER\" ]; then
   # Disassociate Elastic IP from current instance
   current_instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
+  current_public_ip=\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+  if [ \"\$current_public_ip\" = \"${primarysitepublicip}\" ]; then
+    echo \"Nothing to do in master, as primary public ip is same\"
+    exit 0
+  fi 
+
   if [ -n \$current_instance_id ]; then
     aws ec2 disassociate-address --public-ip ${primarysitepublicip} --region \$region
     aws ec2 associate-address --public-ip ${primarysitepublicip} --instance-id \$current_instance_id --region \$region
     echo \"Elastic IP disassociated from previous instance and associated with current instance.\"
 
-    echo \"Updating the RouteTable\"
-    routetableid=$(aws ec2 describe-route-tables --query "RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='${routetablename}']].{RouteTableId:RouteTableId}" --output text --region $region)
+    echo \"Updating the RouteTable ${routetablename}\"
+    routetable=${routetablename}
+    routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
     aws ec2 replace-route --route-table-id \$routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
-
+    
     echo \"Restarting ipsec service\" 
     sudo ipsec start
     sudo ipsec restart
@@ -76,17 +84,18 @@ if [ \$3 = \"MASTER\" ]; then
   fi
 
 elif [ \$3 = \"BACKUP\" ]; then
-  # Stop IPsec service
-  sudo ipsec stop
+  sudo ipsec start
   echo \"IPsec service stopped.\"
 
 else
   echo \"Invalid argument. Use 'master' or 'slave'.\"
-  exit 1
+  sudo ipsec start
+  exit 0
 fi
 
 " > /etc/keepalived/failover.sh
 
+sudo sed -i '1{/^$/d}' /etc/keepalived/failover.sh
 sudo chmod +x /etc/keepalived/failover.sh
 
 echo "
