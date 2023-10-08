@@ -21,7 +21,8 @@ resource "aws_instance" "master" {
     current_privateip     = var.Master_private_ip
     peer_privateip        = var.Follower_private_ip
     psk                   = var.Pre_Shared_Key
-    routetablename = "${var.site_name}_Private_RouteTable"
+    pri_routetablename    = "${var.site_name}_Private_RouteTable"
+    pub_routetablename    = "${var.site_name}_Public_RouteTable"
   })
 
   tags = {
@@ -48,7 +49,8 @@ resource "aws_instance" "follower" {
     current_privateip     = var.Follower_private_ip
     peer_privateip        = var.Master_private_ip
     psk                   = var.Pre_Shared_Key
-    routetablename = "${var.site_name}_Private_RouteTable"
+    pri_routetablename    = "${var.site_name}_Private_RouteTable"
+    pub_routetablename    = "${var.site_name}_Public_RouteTable"
   })
 
   tags = {

@@ -5,7 +5,7 @@ provider "aws" {
 
 module "primarysite" {
   source             = "./VPCSite"
-  site_name          = "singtel_site"
+  site_name          = "canada_site"
   availability_zone1 = "ap-southeast-1a"
   availability_zone2 = "ap-southeast-1b"
   VPC_CIDR           = "10.0.0.0/16"
@@ -16,7 +16,7 @@ module "primarysite" {
 
 module "secondarysite" {
   source             = "./VPCSite"
-  site_name          = "telstra_site"
+  site_name          = "us_site"
   availability_zone1 = "ap-southeast-1c"
   availability_zone2 = "ap-southeast-1a"
   VPC_CIDR           = "192.168.0.0/16"
@@ -31,8 +31,10 @@ resource "random_password" "openssl_random_password" {
 }
 
 module "primarysiteec2" {
+
+  depends_on          = [module.primarysite]
   source              = "./EC2"
-  site_name           = "singtel_site"
+  site_name           = "canada_site"
   EC2_Size            = "t2.micro"
   AMI_ID              = "ami-0df7a207adb9748c7"
   VPC_Id              = module.primarysite.vpc_id
@@ -50,8 +52,10 @@ module "primarysiteec2" {
 }
 
 module "secondarysiteec2" {
+
+  depends_on          = [module.secondarysite]
   source              = "./EC2"
-  site_name           = "telstra_site"
+  site_name           = "us_site"
   EC2_Size            = "t2.micro"
   AMI_ID              = "ami-0df7a207adb9748c7"
   VPC_Id              = module.secondarysite.vpc_id

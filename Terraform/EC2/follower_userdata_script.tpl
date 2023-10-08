@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-echo "Going to sleep for 1 mins"
-sleep 60s
+echo "Going to sleep for 5s"
+sleep 5s
 
 echo "Strongswan installation started"
 sudo apt update && sudo apt upgrade -y
@@ -51,6 +51,8 @@ echo "IP forwarding has been enabled and will persist across reboots."
 echo "
 #!/bin/bash
 
+# Please not that restart/start/stop of ipsec service with in this notifiy script causing keepalived dameon not to work properly
+
 if [ \$3 = \"MASTER\" ]; then
 
   region=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq -r .region)
@@ -70,26 +72,33 @@ if [ \$3 = \"MASTER\" ]; then
     aws ec2 associate-address --public-ip ${primarysitepublicip} --instance-id \$current_instance_id --region \$region
     echo \"Elastic IP disassociated from previous instance and associated with current instance.\"
 
-    echo \"Updating the RouteTable ${routetablename}\"
-    routetable=${routetablename}
-    routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
-    aws ec2 replace-route --route-table-id \$routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
+    echo \"Updating the RouteTable\"
+
+    # Updating the private route table
+    pri_routetable=${pri_routetablename}
+    pri_routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$pri_routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
+    aws ec2 replace-route --route-table-id \$pri_routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
+    
+    # Updating the public route table
+    pub_routetable=${pub_routetablename}
+    pub_routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$pub_routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
+    aws ec2 replace-route --route-table-id \$pub_routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
     
     echo \"Restarting ipsec service\" 
-    sudo ipsec start
-    sudo ipsec restart
+    # sudo ipsec start
+    # sudo ipsec restart
 
   else
     echo \"Current instance ID failed to obtain\"
   fi
 
 elif [ \$3 = \"BACKUP\" ]; then
-  sudo ipsec start
+  # sudo ipsec start
   echo \"IPsec service stopped.\"
 
 else
   echo \"Invalid argument. Use 'master' or 'slave'.\"
-  sudo ipsec start
+  # sudo ipsec start
   exit 0
 fi
 
@@ -112,6 +121,7 @@ vrrp_instance VI_1
     state BACKUP
     virtual_router_id 1
     priority 100
+    advert_int 1
     unicast_src_ip ${current_privateip}
 
     unicast_peer
@@ -128,4 +138,11 @@ vrrp_instance VI_1
 }
 " > /etc/keepalived/keepalived.conf
 
+sudo systemctl enable keepalived
+sudo systemctl enable ipsec
+
+echo "Going to sleep, 180s and will restart the keepalived service"
+sleep 180s
 sudo systemctl restart keepalived
+
+echo "All init script done"
