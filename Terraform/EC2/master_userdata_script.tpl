@@ -62,11 +62,6 @@ if [ \$3 = \"MASTER\" ]; then
 
   current_public_ip=\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
-  if [ \"\$current_public_ip\" = \"${primarysitepublicip}\" ]; then
-    echo \"Nothing to do in master, as primary public ip is same\"
-    exit 0
-  fi 
-
   if [ -n \$current_instance_id ]; then
     aws ec2 disassociate-address --public-ip ${primarysitepublicip} --region \$region
     aws ec2 associate-address --public-ip ${primarysitepublicip} --instance-id \$current_instance_id --region \$region
@@ -92,9 +87,15 @@ if [ \$3 = \"MASTER\" ]; then
     echo \"Current instance ID failed to obtain\"
   fi
 
+  if [ \"\$current_public_ip\" = \"${primarysitepublicip}\" ]; then
+    echo \"IP update is successful\"
+    exit 0
+  fi 
+
 elif [ \$3 = \"BACKUP\" ]; then
   # sudo ipsec start
   echo \"IPsec service stopped.\"
+  exit 0
 
 else
   echo \"Invalid argument. Use 'master' or 'slave'.\"

@@ -17,6 +17,14 @@ resource "aws_security_group" "public" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    description = "${var.site_name} : Public Ping Traffic Allow"
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     description = "${var.site_name} : Outside"
     from_port   = 0
