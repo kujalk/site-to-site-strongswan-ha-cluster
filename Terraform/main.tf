@@ -34,7 +34,7 @@ module "primarysiteec2" {
 
   depends_on          = [module.primarysite]
   source              = "./EC2"
-  site_name           = "canada_site"
+  site_name           = module.primarysite.site_name
   EC2_Size            = "t2.micro"
   AMI_ID              = "ami-0df7a207adb9748c7"
   VPC_Id              = module.primarysite.vpc_id
@@ -55,7 +55,7 @@ module "secondarysiteec2" {
 
   depends_on          = [module.secondarysite]
   source              = "./EC2"
-  site_name           = "us_site"
+  site_name           = module.secondarysite.site_name
   EC2_Size            = "t2.micro"
   AMI_ID              = "ami-0df7a207adb9748c7"
   VPC_Id              = module.secondarysite.vpc_id
