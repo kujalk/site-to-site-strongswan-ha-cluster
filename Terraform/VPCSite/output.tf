@@ -25,3 +25,7 @@ output "eip_allocation_id" {
 output "publicip" {
   value = aws_eip.primary.public_ip
 }
+
+output "site_name" {
+  value = var.site_name
+}
