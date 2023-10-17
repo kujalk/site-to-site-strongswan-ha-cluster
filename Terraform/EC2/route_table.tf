@@ -31,3 +31,15 @@ resource "aws_route" "publicroute" {
   destination_cidr_block = var.Secondary_cidr
   network_interface_id   = aws_instance.master.primary_network_interface_id
 }
+
+resource "aws_route" "primaryviproute" {
+  route_table_id         = tolist(data.aws_route_tables.rts.ids)[0] #only 1 exist
+  destination_cidr_block = "${var.Primary_VIP}/32"
+  network_interface_id   = aws_instance.master.primary_network_interface_id
+}
+
+resource "aws_route" "secondaryviproute" {
+  route_table_id            = tolist(data.aws_route_tables.rts.ids)[0] #only 1 exist
+  destination_cidr_block    = "${var.Secondary_VIP}/32"
+  vpc_peering_connection_id = var.Peering_ID
+}

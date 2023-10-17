@@ -10,7 +10,7 @@ sudo apt install keepalived -y
 sudo apt  install awscli -y
 sudo apt install jq -y 
 
-echo "${primarysitepublicip} ${secondarysitepublicip} : PSK \"${psk}\"" >> /etc/ipsec.secrets  
+echo "${primaryvip} ${secondaryvip} : PSK \"${psk}\"" >> /etc/ipsec.secrets  
 
 echo "
 config setup
@@ -22,9 +22,9 @@ config setup
 conn siteA-to-siteB
   authby=secret
   left=%defaultroute
-  leftid=${primarysitepublicip}
+  leftid=${primaryvip}
   leftsubnet=${primarycidr}
-  right=${secondarysitepublicip}
+  right=${secondaryvip}
   rightsubnet=${secondarycidr}
   ike=aes256-sha2_256-modp1024!
   esp=aes256-sha2_256!
@@ -63,9 +63,10 @@ if [ \$3 = \"MASTER\" ]; then
   current_public_ip=\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 
   if [ -n \$current_instance_id ]; then
-    aws ec2 disassociate-address --public-ip ${primarysitepublicip} --region \$region
-    aws ec2 associate-address --public-ip ${primarysitepublicip} --instance-id \$current_instance_id --region \$region
-    echo \"Elastic IP disassociated from previous instance and associated with current instance.\"
+
+    sudo sed -i \"/eth0:/a \            addresses: [${primaryvip}/32]\" /etc/netplan/50-cloud-init.yaml
+    sudo netplan apply
+    echo \"Enabled VIP with current instance.\"
 
     echo \"Updating the RouteTable\"
 
@@ -87,7 +88,7 @@ if [ \$3 = \"MASTER\" ]; then
     echo \"Current instance ID failed to obtain\"
   fi
 
-  if [ \"\$current_public_ip\" = \"${primarysitepublicip}\" ]; then
+  if [ \"\$current_public_ip\" = \"${primaryvip}\" ]; then
     echo \"IP update is successful\"
     exit 0
   fi 

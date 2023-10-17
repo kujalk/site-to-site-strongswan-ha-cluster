@@ -42,18 +42,18 @@ variable "Secondary_cidr" {
   type = string
 }
 
-variable "EIP_Static_ID" {
-  type = string
-}
-
-variable "Primary_PublicIP" {
-  type = string
-}
-
-variable "Secondary_PublicIP" {
-  type = string
-}
-
 variable "Pre_Shared_Key" {
+  type = string
+}
+
+variable "Primary_VIP" {
+  type = string
+}
+
+variable "Secondary_VIP" {
+  type = string
+}
+
+variable "Peering_ID" {
   type = string
 }
