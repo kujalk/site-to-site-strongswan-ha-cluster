@@ -5,7 +5,7 @@ provider "aws" {
 
 module "primarysite" {
   source             = "./VPCSite"
-  site_name          = "australia_site"
+  site_name          = "india_site"
   availability_zone1 = "ap-southeast-1a"
   availability_zone2 = "ap-southeast-1b"
   VPC_CIDR           = "10.0.0.0/16"
@@ -16,7 +16,7 @@ module "primarysite" {
 
 module "secondarysite" {
   source             = "./VPCSite"
-  site_name          = "nz_site"
+  site_name          = "sg_site"
   availability_zone1 = "ap-southeast-1c"
   availability_zone2 = "ap-southeast-1a"
   VPC_CIDR           = "192.168.0.0/17"
@@ -37,48 +37,50 @@ resource "aws_vpc_peering_connection" "peer" {
   auto_accept = true
 
   tags = {
-    Name = "VPC Peering between primary site and secondary site for ipsec connectivity simulation"
+    Name = "VPC Peering between primary site ${module.primarysite.site_name} and secondary site ${module.secondarysite.site_name} for ipsec connectivity simulation"
   }
 }
 
 module "primarysiteec2" {
 
-  depends_on          = [module.primarysite]
-  source              = "./EC2"
-  site_name           = module.primarysite.site_name
-  EC2_Size            = "t2.micro"
-  AMI_ID              = "ami-0df7a207adb9748c7"
-  VPC_Id              = module.primarysite.vpc_id
-  Master_private_ip   = "10.0.1.5"
-  Follower_private_ip = "10.0.2.5"
-  Pre_Shared_Key      = base64encode(random_password.openssl_random_password.result)
-  Public_SubnetID1    = module.primarysite.public_subnet1
-  Public_SubnetID2    = module.primarysite.public_subnet2
-  Private_SubnetID1   = module.primarysite.private_subnet1
-  Primary_cidr        = module.primarysite.vpc_cidr
-  Secondary_cidr      = module.secondarysite.vpc_cidr
-  Primary_VIP         = "10.5.5.5"
-  Secondary_VIP       = "192.168.128.45"
-  Peering_ID          = aws_vpc_peering_connection.peer.id
+  depends_on                    = [module.primarysite]
+  source                        = "./EC2"
+  site_name                     = module.primarysite.site_name
+  EC2_Size                      = "t2.micro"
+  AMI_ID                        = "ami-0df7a207adb9748c7"
+  VPC_Id                        = module.primarysite.vpc_id
+  Master_private_ip             = "10.0.1.5"
+  Follower_private_ip           = "10.0.2.5"
+  Pre_Shared_Key                = base64encode(random_password.openssl_random_password.result)
+  Public_SubnetID1              = module.primarysite.public_subnet1
+  Public_SubnetID2              = module.primarysite.public_subnet2
+  Private_SubnetID1             = module.primarysite.private_subnet1
+  Primary_cidr                  = module.primarysite.vpc_cidr
+  Secondary_cidr                = module.secondarysite.vpc_cidr
+  Secondary_Master_private_ip   = "192.168.1.15"
+  Secondary_Follower_private_ip = "192.168.2.15"
+  Secondary_Site_name           = module.secondarysite.site_name
+  Peering_ID                    = aws_vpc_peering_connection.peer.id
 }
 
 module "secondarysiteec2" {
 
-  depends_on          = [module.secondarysite]
-  source              = "./EC2"
-  site_name           = module.secondarysite.site_name
-  EC2_Size            = "t2.micro"
-  AMI_ID              = "ami-0df7a207adb9748c7"
-  VPC_Id              = module.secondarysite.vpc_id
-  Master_private_ip   = "192.168.1.15"
-  Follower_private_ip = "192.168.2.15"
-  Pre_Shared_Key      = base64encode(random_password.openssl_random_password.result)
-  Public_SubnetID1    = module.secondarysite.public_subnet1
-  Public_SubnetID2    = module.secondarysite.public_subnet2
-  Private_SubnetID1   = module.secondarysite.private_subnet1
-  Primary_cidr        = module.secondarysite.vpc_cidr
-  Secondary_cidr      = module.primarysite.vpc_cidr
-  Primary_VIP         = "192.168.128.45"
-  Secondary_VIP       = "10.5.5.5"
-  Peering_ID          = aws_vpc_peering_connection.peer.id
+  depends_on                    = [module.secondarysite]
+  source                        = "./EC2"
+  site_name                     = module.secondarysite.site_name
+  EC2_Size                      = "t2.micro"
+  AMI_ID                        = "ami-0df7a207adb9748c7"
+  VPC_Id                        = module.secondarysite.vpc_id
+  Master_private_ip             = "192.168.1.15"
+  Follower_private_ip           = "192.168.2.15"
+  Pre_Shared_Key                = base64encode(random_password.openssl_random_password.result)
+  Public_SubnetID1              = module.secondarysite.public_subnet1
+  Public_SubnetID2              = module.secondarysite.public_subnet2
+  Private_SubnetID1             = module.secondarysite.private_subnet1
+  Primary_cidr                  = module.secondarysite.vpc_cidr
+  Secondary_cidr                = module.primarysite.vpc_cidr
+  Secondary_Master_private_ip   = "10.0.1.5"
+  Secondary_Follower_private_ip = "10.0.2.5"
+  Secondary_Site_name           = module.primarysite.site_name
+  Peering_ID                    = aws_vpc_peering_connection.peer.id
 }

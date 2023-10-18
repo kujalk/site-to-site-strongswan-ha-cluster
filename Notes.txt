@@ -1,0 +1,16 @@
+- Don't use master for testing. Use follower for testing. 
+  Reason, is traffic is routed via Master EC2, but when it returns it used PCX connection, which make 
+  security group to reject the traffic, that means, master cannot be destination and source of traffic
+
+- ENI is not updated properly due to race condition, so added extra delay in cloud-init script for 
+  follower 
+
+- Use this command to monitor traffic -> tcpdump -i eth0 icmp
+
+To do, 
+
+if master of site1 fails ,
+
+1. update the routing table in site1 -> eni and pcx 
+2. update the routing table in site 2 -> pcx
+2. call the ssm document to update the other side /etc/ipsec ip address 

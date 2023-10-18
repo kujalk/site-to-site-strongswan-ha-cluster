@@ -9,15 +9,17 @@ resource "aws_instance" "master" {
   private_ip             = var.Master_private_ip
   source_dest_check      = false
   user_data = templatefile("EC2/master_userdata_script.tpl", {
-    primaryvip         = var.Primary_VIP
-    secondaryvip       = var.Secondary_VIP
-    primarycidr        = var.Primary_cidr
-    secondarycidr      = var.Secondary_cidr
-    current_privateip  = var.Master_private_ip
-    peer_privateip     = var.Follower_private_ip
-    psk                = var.Pre_Shared_Key
-    pri_routetablename = "${var.site_name}_Private_RouteTable"
-    pub_routetablename = "${var.site_name}_Public_RouteTable"
+    secondary_master_ip  = var.Secondary_Master_private_ip
+    primarycidr          = var.Primary_cidr
+    secondarycidr        = var.Secondary_cidr
+    current_privateip    = var.Master_private_ip
+    peer_privateip       = var.Follower_private_ip
+    psk                  = var.Pre_Shared_Key
+    pri_routetablename   = "${var.site_name}_Private_RouteTable"
+    pub_routetablename   = "${var.site_name}_Public_RouteTable"
+    secondary_tag        = var.Secondary_Site_name
+    peering_id           = var.Peering_ID
+    site2_routetablename = "${var.Secondary_Site_name}_Public_RouteTable"
   })
 
   tags = {
@@ -37,15 +39,17 @@ resource "aws_instance" "follower" {
   source_dest_check      = false
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   user_data = templatefile("EC2/follower_userdata_script.tpl", {
-    primaryvip         = var.Primary_VIP
-    secondaryvip       = var.Secondary_VIP
-    primarycidr        = var.Primary_cidr
-    secondarycidr      = var.Secondary_cidr
-    current_privateip  = var.Follower_private_ip
-    peer_privateip     = var.Master_private_ip
-    psk                = var.Pre_Shared_Key
-    pri_routetablename = "${var.site_name}_Private_RouteTable"
-    pub_routetablename = "${var.site_name}_Public_RouteTable"
+    secondary_master_ip  = var.Secondary_Master_private_ip
+    primarycidr          = var.Primary_cidr
+    secondarycidr        = var.Secondary_cidr
+    current_privateip    = var.Follower_private_ip
+    peer_privateip       = var.Master_private_ip
+    psk                  = var.Pre_Shared_Key
+    pri_routetablename   = "${var.site_name}_Private_RouteTable"
+    pub_routetablename   = "${var.site_name}_Public_RouteTable"
+    secondary_tag        = var.Secondary_Site_name
+    peering_id           = var.Peering_ID
+    site2_routetablename = "${var.Secondary_Site_name}_Public_RouteTable"
   })
 
   tags = {

@@ -46,11 +46,15 @@ variable "Pre_Shared_Key" {
   type = string
 }
 
-variable "Primary_VIP" {
+variable "Secondary_Master_private_ip" {
   type = string
 }
 
-variable "Secondary_VIP" {
+variable "Secondary_Follower_private_ip" {
+  type = string
+}
+
+variable "Secondary_Site_name" {
   type = string
 }
 

@@ -18,10 +18,10 @@ resource "aws_security_group" "public" {
   }
 
   ingress {
-    description = "${var.site_name} : Public Ping Traffic Allow"
-    from_port   = -1
-    to_port     = -1
-    protocol    = "icmp"
+    description = "${var.site_name} : Allow all Traffic via Strongswan"
+    from_port   = 0
+    to_port     = 0
+    protocol    = -1
     cidr_blocks = ["0.0.0.0/0"]
   }
 

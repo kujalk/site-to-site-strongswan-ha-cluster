@@ -10,7 +10,7 @@ sudo apt install keepalived -y
 sudo apt  install awscli -y
 sudo apt install jq -y 
 
-echo "${primaryvip} ${secondaryvip} : PSK \"${psk}\"" >> /etc/ipsec.secrets  
+echo "${current_privateip} ${secondary_master_ip} : PSK \"${psk}\"" >> /etc/ipsec.secrets  
 
 echo "
 config setup
@@ -22,9 +22,9 @@ config setup
 conn siteA-to-siteB
   authby=secret
   left=%defaultroute
-  leftid=${primaryvip}
+  leftid=${current_privateip}
   leftsubnet=${primarycidr}
-  right=${secondaryvip}
+  right=${secondary_master_ip}
   rightsubnet=${secondarycidr}
   ike=aes256-sha2_256-modp1024!
   esp=aes256-sha2_256!
@@ -60,13 +60,7 @@ if [ \$3 = \"MASTER\" ]; then
   # Disassociate Elastic IP from current instance
   current_instance_id=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
-  current_public_ip=\$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
-
   if [ -n \$current_instance_id ]; then
-
-    sudo sed -i \"/eth0:/a \            addresses: [${primaryvip}/32]\" /etc/netplan/50-cloud-init.yaml
-    sudo netplan apply
-    echo \"Enabled VIP with current instance.\"
 
     echo \"Updating the RouteTable\"
 
@@ -80,18 +74,20 @@ if [ \$3 = \"MASTER\" ]; then
     pub_routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$pub_routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
     aws ec2 replace-route --route-table-id \$pub_routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
     
-    echo \"Restarting ipsec service\" 
-    # sudo ipsec start
-    # sudo ipsec restart
+    # Updating the public route table for pcx
+    aws ec2 replace-route --route-table-id \$pub_routetableid --destination-cidr-block ${secondary_master_ip} --vpc-peering-connection-id ${peering_id} --region \$region
+
+    # Updating the other site route table for pcx 
+    site2_routetable=${site2_routetablename}
+    site2_routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$site2_routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
+    aws ec2 replace-route --route-table-id \$site2_routetableid --destination-cidr-block ${current_privateip} --vpc-peering-connection-id ${peering_id} --region \$region
+
+    ssmid=\$(aws ssm send-command --document-name \"AWS-RunShellScript\" --query \"Command.CommandId\" --output text --parameters commands=\"sh /etc/keepalived/ssmscript.sh ${peer_privateip} ${current_privateip}\" --targets \"Key=tag:SiteName,Values=${secondary_tag}\" --region \$region)
+    echo \"SSM document triggered with id \$ssmid\"
 
   else
     echo \"Current instance ID failed to obtain\"
   fi
-
-  if [ \"\$current_public_ip\" = \"${primaryvip}\" ]; then
-    echo \"IP update is successful\"
-    exit 0
-  fi 
 
 elif [ \$3 = \"BACKUP\" ]; then
   # sudo ipsec start
@@ -139,6 +135,23 @@ vrrp_instance VI_1
     notify \"/etc/keepalived/failover.sh\"
 }
 " > /etc/keepalived/keepalived.conf
+
+
+echo "
+#!/bin/bash
+
+# Update /etc/ipsec.conf
+sed -i \"s/\$1/\$2/\" /etc/ipsec.conf
+
+# Update /etc/ipsec.secrets
+sed -i \"s/\$1/\$2/\" /etc/ipsec.secrets
+
+# Restart the service
+sudo ipsec restart            
+" > /etc/keepalived/ssmscript.sh
+
+sudo sed -i '1{/^$/d}' /etc/keepalived/ssmscript.sh
+sudo chmod +x /etc/keepalived/ssmscript.sh
 
 sudo systemctl enable keepalived
 sudo systemctl enable ipsec
