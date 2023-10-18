@@ -77,6 +77,18 @@ resource "aws_iam_policy" "policy" {
           "ec2:DescribeRouteTables",
           "ec2:ReplaceRoute",
           "ec2:CreateRoute",
+          "ec2:DeleteRoute"
+        ]
+        Resource = "*"
+      },
+      {
+        Sid    = "SSMActions"
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand",
+          "ssm:ListCommands",
+          "ssm:GetCommandInvocation",
+          "ssm:DescribeInstanceInformation"
         ]
         Resource = "*"
       }

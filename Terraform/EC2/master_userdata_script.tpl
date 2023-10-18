@@ -73,14 +73,22 @@ if [ \$3 = \"MASTER\" ]; then
     pub_routetable=${pub_routetablename}
     pub_routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$pub_routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
     aws ec2 replace-route --route-table-id \$pub_routetableid --destination-cidr-block ${secondarycidr} --instance-id \$current_instance_id --region \$region
-    
-    # Updating the public route table for pcx
-    aws ec2 replace-route --route-table-id \$pub_routetableid --destination-cidr-block ${secondary_master_ip} --vpc-peering-connection-id ${peering_id} --region \$region
 
     # Updating the other site route table for pcx 
     site2_routetable=${site2_routetablename}
     site2_routetableid=\$(aws ec2 describe-route-tables --query \"RouteTables[?RouteTableId && Tags[?Key=='Name' && Value=='\$site2_routetable']].{RouteTableId:RouteTableId}\" --output text --region \$region)
-    aws ec2 replace-route --route-table-id \$site2_routetableid --destination-cidr-block ${current_privateip} --vpc-peering-connection-id ${peering_id} --region \$region
+
+    # Query the existing route and check if it exists
+    aws ec2 describe-route-tables --route-table-ids \$site2_routetableid --query \"RouteTables[0].Routes[?DestinationCidrBlock=='${peer_privateip}/32']\" --output text --region \$region | grep -q '${peer_privateip}/32'
+
+    # Check the exit status of the previous command
+    if [ \$? -eq 0 ]; then
+        # Route exists, delete it
+        aws ec2 delete-route --route-table-id \$site2_routetableid --destination-cidr-block ${peer_privateip}/32 --region \$region
+    fi
+
+    # Create a new route in other site
+    aws ec2 create-route --route-table-id \$site2_routetableid --destination-cidr-block ${current_privateip}/32 --vpc-peering-connection-id ${peering_id} --region \$region
 
     ssmid=\$(aws ssm send-command --document-name \"AWS-RunShellScript\" --query \"Command.CommandId\" --output text --parameters commands=\"sh /etc/keepalived/ssmscript.sh ${peer_privateip} ${current_privateip}\" --targets \"Key=tag:SiteName,Values=${secondary_tag}\" --region \$region)
     echo \"SSM document triggered with id \$ssmid\"
@@ -118,8 +126,8 @@ vrrp_instance VI_1
     interface eth0
     state MASTER
     virtual_router_id 1
-    priority 110
-    advert_int 1
+    priority 210
+    advert_int 5
     unicast_src_ip ${current_privateip}
 
     unicast_peer
