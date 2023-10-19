@@ -5,7 +5,7 @@ provider "aws" {
 
 module "primarysite" {
   source             = "./VPCSite"
-  site_name          = "india_site"
+  site_name          = "cuba_site"
   availability_zone1 = "ap-southeast-1a"
   availability_zone2 = "ap-southeast-1b"
   VPC_CIDR           = "10.0.0.0/16"
@@ -16,7 +16,7 @@ module "primarysite" {
 
 module "secondarysite" {
   source             = "./VPCSite"
-  site_name          = "sg_site"
+  site_name          = "thailand_site"
   availability_zone1 = "ap-southeast-1c"
   availability_zone2 = "ap-southeast-1a"
   VPC_CIDR           = "192.168.0.0/17"

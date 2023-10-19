@@ -47,6 +47,15 @@ echo "net.ipv4.ip_forward = 1" >> /etc/sysctl.conf
 sysctl -p
 echo "IP forwarding has been enabled and will persist across reboots."
 
+echo "Going to configure apparmor for allowing signals"
+file_path="/etc/apparmor.d/usr.lib.ipsec.charon"
+new_line="signal (receive) peer=snap.amazon-ssm-agent.amazon-ssm-agent,"
+sed -i "/#include <local\\/usr.lib.ipsec.charon>/a $new_line" "$file_path"
+
+sudo apparmor_parser -r /etc/apparmor.d/usr.lib.ipsec.charon
+
+echo "Apparmor Line added successfully and restarted the service"
+
 #notify script
 echo "
 #!/bin/bash
@@ -154,7 +163,10 @@ sed -i \"s/\$1/\$2/\" /etc/ipsec.conf
 sed -i \"s/\$1/\$2/\" /etc/ipsec.secrets
 
 # Restart the service
-sudo ipsec restart            
+sudo pkill -9 charon
+sudo ipsec stop
+sleep 1
+sudo ipsec start   
 " > /etc/keepalived/ssmscript.sh
 
 sudo sed -i '1{/^$/d}' /etc/keepalived/ssmscript.sh
