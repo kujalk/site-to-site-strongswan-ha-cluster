@@ -14,3 +14,10 @@ if master of site1 fails ,
 1. update the routing table in site1 -> eni and pcx 
 2. update the routing table in site 2 -> pcx
 2. call the ssm document to update the other side /etc/ipsec ip address 
+
+This looks a lot like the configuration that you’ve been working with, but the vrrp_script block has a few unique directives:
+
+interval: How often the script should be run (1 second).
+timeout: How long to wait for the script to return (5 seconds).
+rise: How many times the script must return successfully in order for the host to be considered “healthy.” In this example, the script must return successfully 3 times. This helps to prevent a “flapping” condition where a single failure (or success) causes the Keepalived state to quickly flip back and forth.
+fall: How many times the script must return unsuccessfully (or time out) in order for the host to be considered “unhealthy.” This functions as the reverse of the rise directive.
